@@ -1,4 +1,4 @@
-suite.skip("Mocha with QUnit interface and expect (separate library) assertions - examples");
+suite("Mocha with QUnit interface and expect (separate library) assertions - examples");
 
 test("Passing test", function () {
   expect(true).toBe(true);
@@ -22,11 +22,27 @@ test("Synchronous throw, uncaught", function () {
 
 test("Async throw, uncaught", function (done) {
 
-  setTimeout(function () {
+  // expect (function() {
+  //   setTimeout(function () {
 
-    throw new Error("oh noes")
+  //     throw new Error("oh noes")
 
-  }, 1)
+  //   }, 1)
+
+  // }).toThrow("oh noes")
+    // setTimeout(function () {
+
+    //   throw new Error("oh noes")
+
+    // }, 1)
+    setTimeout(function () {
+      expect(function() {
+        throw new Error("oh noes")
+      }).toThrow("oh noes")
+      
+      done()
+
+    }, 1)
 
 });
 
