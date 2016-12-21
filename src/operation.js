@@ -1,10 +1,10 @@
 const delayms = 1;
 
-function getCurrentCity(callback) {
+function getCurrentCity(callback) { // note the callback passed INTO this method
   setTimeout(function () {
 
     const city = "New York, NY";
-    callback(null, city);
+    callback(null, city); // and this same callback called with a new variable
 
   }, delayms)
 }
@@ -47,25 +47,25 @@ suite.only("operations");
 
 function fetchCurrentCity1(success, error, data) {
   setTimeout(function() {
-    if (!data) {
-      error();
+    if (!data) { // if method did not receive data
+      error(); // then call the provided error callback
       return;
-    } else {
-      success();
+    } else { // otherwise
+      success(); // call the provided success method!
       return;
     }
   }, delayms);
 }
 
 function fetchCurrentCity2() {
-  const operation = {};
+  const operation = {}; // define some operation 
 
-  operation.onCompletion = function(s, e) {
+  operation.onCompletion = function(s, e) { // define a method that can set a success and error method on the associated operation object
     operation.success = s;
     operation.error = e;
   }
   
-  setTimeout(function() {
+  setTimeout(function() { // while the setTimeout method is called, the method inside WILL NOT RUN IMMEDIATELY
     if(operation.success) {
       operation.success();
     }
