@@ -71,13 +71,29 @@ function fetchCurrentCity2() {
     }
   }, delayms);
 
-  return operation;
+  return operation; // return the operation object
 }
 
 function fetchCurrentCity() {
   const operation = new Operation();  
   
   getCurrentCity(operation.nodeCallback);
+
+  return operation;
+}
+
+function fetchForecast(city) {
+  const operation = new Operation();
+
+  getForecast(city, operation.nodeCallback);
+
+  return operation;
+}
+
+function fetchWeather(city) {
+  const operation = new Operation();
+
+  getWeather(city, operation.nodeCallback);
 
   return operation;
 }
@@ -98,18 +114,28 @@ function Operation() {
   }
 
   operation.fail = function(e) {
+    operation.state = "failed";
+    operation.error = e;
     operation.failure.forEach(r => r(e));
   }
 
   operation.succeed = function(result) {
+    operation.state = "succeeded";
+    operation.result = result;
     operation.success.forEach(r => r(result));
   } 
 
   operation.onCompletion = function(s,e) {
     const noop = function() {};
     
-    operation.success.push(s || noop);
-    operation.failure.push(e || noop);
+    if (operation.state === "succeeded") {
+      s(operation.result);
+    } else if (operation.state === "failed") {
+      e(operation.error);
+    } else {
+      operation.success.push(s || noop);
+      operation.failure.push(e || noop);
+    }
   }
 
   operation.onSuccess = function(s) {
@@ -122,6 +148,26 @@ function Operation() {
 
   return operation;
 }
+
+function doLater(func) {
+  setTimeout(func, 1);
+};
+
+test("register failure callback async", function(done){
+  var operationThatFails = fetchWeather();
+
+  doLater(function() {
+    operationThatFails.onFailure(()=>done());
+  })
+});
+
+test("register success callback async", function(done){
+  var operationThatSucceeds = fetchCurrentCity();
+
+  doLater(function() {
+    operationThatSucceeds.onCompletion(()=>done());
+  })
+});
 
 test("noop if no success handler passed", function(done) {
   const operation = fetchCurrentCity();
