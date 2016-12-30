@@ -141,6 +141,10 @@ function Operation() {
   return operation;
 }
 
+function doLater(func) {
+  setTimeout(func, 1);
+}
+
 test("register success callback async", function(done) {
   var currentCity = fetchCurrentCity(); // create the operation, or promise
   currentCity.onCompletion(c => console.log(`City found: ${c}`)); // register the operation's onCompletion callback
