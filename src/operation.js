@@ -146,11 +146,19 @@ function doLater(func) {
 }
 
 test("register success callback async", function(done) {
-  var currentCity = fetchCurrentCity(); // create the operation, or promise
+  var operationThatSucceeds = fetchCurrentCity(); // create the operation, or promise
 
-  doLater(currentCity.onCompletion(function(city) {
-    done();
-  }));
+  doLater(function() {
+    operationThatSucceeds.onCompletion(() => done());
+  });
+});
+
+test("register failure callback async", function(done) {
+  var operationThatFails = fetchWeather();
+
+  doLater(function() {
+    operationThatFails.onFailure(() => done());
+  });
 });
 
 test("noop if no success handler passed", function(done) {
