@@ -82,11 +82,21 @@ function fetchCurrentCity() {
   return operation;
 }
 
+function fetchWeather(city) {
+  const operation = new Operation();
+
+  getWeather(city, operation.nodeCallback);
+
+  return operation;
+}
+
 function Operation() {
   const operation = {
     success: [],
     failure: []
   };
+
+  let operationState = 'pending';
 
   operation.nodeCallback = function(error, result) {
     if (error) {
@@ -98,18 +108,26 @@ function Operation() {
   }
 
   operation.fail = function(e) {
+    operation.operationState = 'failed';
+    operation.error = e; 
     operation.failure.forEach(r => r(e));
   }
 
   operation.succeed = function(result) {
+    operation.operationState = 'succeeded';
+    operation.result = result;
     operation.success.forEach(r => r(result));
   } 
 
   operation.onCompletion = function(s,e) {
     const noop = function() {};
-    
     operation.success.push(s || noop);
     operation.failure.push(e || noop);
+    if (operation.operationState === 'succeeded') {
+      s(operation.result);
+    } else if (operation.operationState === 'failed') {
+      e(operation.error);
+    }
   }
 
   operation.onSuccess = function(s) {
@@ -122,6 +140,18 @@ function Operation() {
 
   return operation;
 }
+
+test("register success callback async", function(done) {
+  var currentCity = fetchCurrentCity(); // create the operation, or promise
+  currentCity.onCompletion(c => console.log(`City found: ${c}`)); // register the operation's onCompletion callback
+
+  setTimeout(function() {
+    currentCity.onCompletion(function(city){
+      fetchWeather(city);
+      done();
+    })
+  }, 1);
+});
 
 test("noop if no success handler passed", function(done) {
   const operation = fetchCurrentCity();
