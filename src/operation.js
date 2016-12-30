@@ -147,14 +147,10 @@ function doLater(func) {
 
 test("register success callback async", function(done) {
   var currentCity = fetchCurrentCity(); // create the operation, or promise
-  currentCity.onCompletion(c => console.log(`City found: ${c}`)); // register the operation's onCompletion callback
 
-  setTimeout(function() {
-    currentCity.onCompletion(function(city){
-      fetchWeather(city);
-      done();
-    })
-  }, 1);
+  doLater(currentCity.onCompletion(function(city) {
+    done();
+  }));
 });
 
 test("noop if no success handler passed", function(done) {
