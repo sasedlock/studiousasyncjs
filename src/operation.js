@@ -10,6 +10,7 @@ function getCurrentCity(callback) {
 }
 
 function getWeather(city, callback) {
+  console.log('getting weather');
   setTimeout(function () {
 
     if (!city) {
@@ -27,6 +28,7 @@ function getWeather(city, callback) {
 }
 
 function getForecast(city, callback) {
+  console.log('getting forecast');
   setTimeout(function () {
 
     if (!city) {
@@ -90,13 +92,21 @@ function fetchWeather(city) {
   return operation;
 }
 
+function fetchForecast(city) {
+  const operation = new Operation();
+
+  getForecast(city, operation.nodeCallback);
+
+  return operation;
+}
+
 function Operation() {
   const operation = {
     success: [],
     failure: []
   };
 
-  let operationState = 'pending';
+  operation.operationState = 'pending';
 
   operation.nodeCallback = function(error, result) {
     if (error) {
@@ -121,9 +131,10 @@ function Operation() {
 
   operation.onCompletion = function(s,e) {
     const noop = function() {};
-    operation.success.push(s || noop);
-    operation.failure.push(e || noop);
-    if (operation.operationState === 'succeeded') {
+    if (operation.operationState === 'pending'){
+      operation.success.push(s || noop);
+      operation.failure.push(e || noop);
+    } else if (operation.operationState === 'succeeded') {
       s(operation.result);
     } else if (operation.operationState === 'failed') {
       e(operation.error);
@@ -144,6 +155,22 @@ function Operation() {
 function doLater(func) {
   setTimeout(func, 1);
 }
+
+test("lexical parallelism", function(done){
+  const city = "NYC";
+  console.log('before fireing off requests');
+  const weatherOp = fetchWeather(city); // fire off request for the weather
+  const forecastOp = fetchForecast(city); // fire off request for the forecast
+  console.log('requests have completed');
+
+  forecastOp.onCompletion(function(forecast) { // register function to run after weather has been fetched
+    weatherOp.onCompletion(function(weather) { // register function to run after forecast has been fetched
+      // once we have both the forecast and the weather, then do something
+      console.log(`It's currently ${weather.temp} in ${city} with a five day forecast of ${forecast.fiveDay}!`);
+      done();
+    })
+  })
+});
 
 test("register success callback async", function(done) {
   var operationThatSucceeds = fetchCurrentCity(); // create the operation, or promise
