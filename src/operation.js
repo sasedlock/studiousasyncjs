@@ -142,13 +142,22 @@ function Operation() {
       }
     }
 
+    function errorHandler() {
+      if (e) {
+        const callbackError = e(operation.error);
+        if (callbackError && callbackError.onCompletion) {
+          callbackError.forwardCompletion(completionOp);
+        }
+      }
+    }
+
     if (operation.operationState === 'pending'){
-      operation.success.push(s || noop);
-      operation.failure.push(e || noop);
+      operation.success.push(successHandler);
+      operation.failure.push(errorHandler);
     } else if (operation.operationState === 'succeeded') {
-      s(operation.result);
+      successHandler();
     } else if (operation.operationState === 'failed') {
-      e(operation.error);
+      errorHandler();
     }
 
     return completionOp;
@@ -174,11 +183,9 @@ function doLater(func) {
 }
 
 test("life is full of async, nesting is inevitable, let's do something about it", function(done){
-  let weatherOp = fetchCurrentCity().onCompletion(function(city) {
-    fetchWeather(city).forwardCompletion(weatherOp);
-  });
-
-  weatherOp.onCompletion(weather => done());
+  fetchCurrentCity()
+    .onCompletion(city => fetchWeather(city))
+    .onCompletion(weather => done());
 });
 
 test("lexical parallelism", function(done){
