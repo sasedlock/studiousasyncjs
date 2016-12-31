@@ -131,6 +131,17 @@ function Operation() {
 
   operation.onCompletion = function(s,e) {
     const noop = function() {};
+    const completionOp = new Operation();
+
+    function successHandler() {
+      if (s) {
+        const callbackResult = s(operation.result);
+        if (callbackResult && callbackResult.onCompletion) {
+          callbackResult.forwardCompletion(completionOp);
+        }
+      }
+    }
+
     if (operation.operationState === 'pending'){
       operation.success.push(s || noop);
       operation.failure.push(e || noop);
@@ -139,14 +150,20 @@ function Operation() {
     } else if (operation.operationState === 'failed') {
       e(operation.error);
     }
+
+    return completionOp;
   }
 
   operation.onSuccess = function(s) {
-    operation.onCompletion(s);
+    return operation.onCompletion(s);
   }
 
   operation.onFailure = function(e) {
-    operation.onCompletion(null,e);
+    return operation.onCompletion(null,e);
+  }
+
+  operation.forwardCompletion = function(op) {
+    return operation.onCompletion(op.succeed, op.fail);
   }
 
   return operation;
@@ -157,10 +174,8 @@ function doLater(func) {
 }
 
 test("life is full of async, nesting is inevitable, let's do something about it", function(done){
-  let weatherOp = new Operation();
-  
-  fetchCurrentCity().onCompletion(function(city) {
-    fetchWeather(city).onCompletion(weatherOp.succeed, weatherOp.fail);
+  let weatherOp = fetchCurrentCity().onCompletion(function(city) {
+    fetchWeather(city).forwardCompletion(weatherOp);
   });
 
   weatherOp.onCompletion(weather => done());
