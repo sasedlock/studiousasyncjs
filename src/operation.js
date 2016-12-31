@@ -163,6 +163,8 @@ function Operation() {
     return completionOp;
   }
 
+  operation.then = operation.onCompletion;
+
   operation.onSuccess = function(s) {
     return operation.onCompletion(s);
   }
@@ -182,10 +184,16 @@ function doLater(func) {
   setTimeout(func, 1);
 }
 
+test("life is full of async, nesting is inevitable, let's do something about errors", function(done){
+  fetchCurrentCity()
+    .then(city => fetchWeather())
+      .then(null, done());
+});
+
 test("life is full of async, nesting is inevitable, let's do something about it", function(done){
   fetchCurrentCity()
-    .onCompletion(city => fetchWeather(city))
-    .onCompletion(weather => done());
+    .then(city => fetchWeather(city))
+    .then(weather => done());
 });
 
 test("lexical parallelism", function(done){
