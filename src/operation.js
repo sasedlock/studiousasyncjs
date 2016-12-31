@@ -156,32 +156,14 @@ function doLater(func) {
   setTimeout(func, 1);
 }
 
-test("life is full of async, nesting is inevitable, let's do something about it1", function(done){
-  console.log('creating new weatherOp operation');
-  let weatherOp = new Operation(); // set reference to new, separate operation
+test("life is full of async, nesting is inevitable, let's do something about it", function(done){
+  let weatherOp = new Operation();
   
-  console.log('fire off request for current city, and register handler function on completion of getting city');
-  fetchCurrentCity().onCompletion(function(city) { // fireoff request for current city, and immediately register success callback
-    console.log('fetching city succeeded');
-    console.log('now fire off request for weather, and register handler function on completion of getting weather');
-    fetchWeather(city).onCompletion(function(weather){ // fire off request for weather, and immidately register success callback
-      console.log('fetching weather succeeded');
-      console.log(`now trigger the weatherOp operation's succeed method - which loops through all it's success handlers and fires them`);      
-      weatherOp.succeed(weather); // call the OTHER weather operation's succeed method with the weather that was returned;
-    });
+  fetchCurrentCity().onCompletion(function(city) {
+    fetchWeather(city).onCompletion(weatherOp.succeed, weatherOp.fail);
   });
 
-  console.log(`register a handler for when the operation's succeed method is called`);
-  // do something else with the weather response
-  weatherOp.onCompletion(function(w) {
-    console.log('first operation success handler');
-    done();
-  });
-
-  console.log(`register second handler for when the operation's succeed method is called`);
-  weatherOp.onCompletion(function(w) {
-    console.log('second operation success handler');
-  });
+  weatherOp.onCompletion(weather => done());
 });
 
 test("lexical parallelism", function(done){
