@@ -120,13 +120,13 @@ function Operation() {
   operation.fail = function(e) {
     operation.operationState = 'failed';
     operation.error = e; 
-    operation.failure.forEach(r => r(e));
+    operation.failure.forEach(f => f(e));
   }
 
   operation.succeed = function(result) {
     operation.operationState = 'succeeded';
     operation.result = result;
-    operation.success.forEach(r => r(result));
+    operation.success.forEach(s => s(result));
   } 
 
   operation.onCompletion = function(s,e) {
