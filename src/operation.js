@@ -102,8 +102,8 @@ function fetchForecast(city) {
 
 function Operation() {
   const operation = {
-    success: [],
-    failure: []
+    successHandlers: [],
+    errorHandlers: []
   };
 
   operation.operationState = 'pending';
@@ -120,13 +120,13 @@ function Operation() {
   operation.fail = function(e) {
     operation.operationState = 'failed';
     operation.error = e; 
-    operation.failure.forEach(f => f(e));
+    operation.errorHandlers.forEach(f => f(e));
   }
 
   operation.succeed = function(result) {
     operation.operationState = 'succeeded';
     operation.result = result;
-    operation.success.forEach(s => s(result));
+    operation.successHandlers.forEach(s => s(result));
   } 
 
   operation.onCompletion = function(s,e) {
@@ -158,8 +158,8 @@ function Operation() {
     }
 
     if (operation.operationState === 'pending'){
-      operation.success.push(successHandler);
-      operation.failure.push(errorHandler);
+      operation.successHandlers.push(successHandler);
+      operation.errorHandlers.push(errorHandler);
     } else if (operation.operationState === 'succeeded') {
       successHandler();
     } else if (operation.operationState === 'failed') {
