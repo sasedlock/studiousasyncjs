@@ -1,9 +1,13 @@
 const delayms = 1;
+const defaultCity = "Houston, TX";
+const defaultForecast = {
+      fiveDay: [60, 70, 80, 45, 50]
+    };
 
 function getCurrentCity(callback) {
   setTimeout(function () {
 
-    const city = "New York, NY";
+    const city = defaultCity;
     callback(null, city);
 
   }, delayms)
@@ -36,11 +40,7 @@ function getForecast(city, callback) {
       return;
     }
 
-    const fiveDay = {
-      fiveDay: [60, 70, 80, 45, 50]
-    };
-
-    callback(null, fiveDay)
+    callback(null, defaultForecast);
 
   }, delayms)
 }
@@ -131,23 +131,29 @@ function Operation() {
 
   operation.onCompletion = function(s,e) {
     const noop = function() {};
-    const completionOp = new Operation();
+    const proxyOp = new Operation();
 
     function successHandler() {
       if (s) {
         const callbackResult = s(operation.result);
-        if (callbackResult && callbackResult.onCompletion) {
-          callbackResult.forwardCompletion(completionOp);
+        if (callbackResult && callbackResult.then) {
+          callbackResult.forwardCompletion(proxyOp);
         }
+      } else {
+        proxyOp.succeed(operation.result);
       }
     }
 
     function errorHandler() {
       if (e) {
         const callbackError = e(operation.error);
-        if (callbackError && callbackError.onCompletion) {
-          callbackError.forwardCompletion(completionOp);
+        if (callbackError && callbackError.then) {
+          callbackError.forwardCompletion(proxyOp);
+          return;
         }
+        proxyOp.succeed(callbackError);
+      } else {
+        proxyOp.fail(operation.error);
       }
     }
 
@@ -160,10 +166,8 @@ function Operation() {
       errorHandler();
     }
 
-    return completionOp;
+    return proxyOp;
   }
-
-  operation.then = operation.onCompletion;
 
   operation.onSuccess = function(s) {
     return operation.onCompletion(s);
@@ -176,6 +180,10 @@ function Operation() {
   operation.forwardCompletion = function(op) {
     return operation.onCompletion(op.succeed, op.fail);
   }
+  
+  operation.then = operation.onCompletion;
+
+  operation.catch = operation.onFailure;
 
   return operation;
 }
@@ -183,6 +191,56 @@ function Operation() {
 function doLater(func) {
   setTimeout(func, 1);
 }
+
+function fetchCurrentCityThatFails() {
+  var operation = new Operation();
+  doLater(() => operation.fail(new Error("GPS broken")));
+  return operation;
+}
+
+test("sync error recovery", function(done) {
+  fetchCurrentCityThatFails()
+    .catch(function(){
+    return defaultCity;       
+    })     
+    .then(function(city) {
+      expect(city).toBe(defaultCity);
+      done();
+    });
+});
+
+test("async error recovery", function(done) {
+  fetchCurrentCityThatFails()
+    .catch(function(){
+      return fetchCurrentCity();
+    })     
+    .then(function(city) {
+      expect(city).toBe(defaultCity);
+      done();
+    });
+});
+
+test("error recovery bypassed if not needed", function(done){
+  fetchCurrentCity()
+    .catch(error => defaultCity)
+    .then(function(city) {
+      expect(city).toBe(defaultCity);
+      done();
+    })
+})
+
+test("error fallthrough", function(done){
+  fetchCurrentCityThatFails()
+    .then(function(city) {
+      return fetchForecast(city);
+    })
+    .then(function(forecast) {
+      expect(forecast).toBe(defaultForecast);
+    })
+    .catch(function(error) {
+      done();
+    });
+})
 
 test("life is full of async, nesting is inevitable, let's do something about errors", function(done){
   fetchCurrentCity()
